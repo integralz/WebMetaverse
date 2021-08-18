@@ -1,0 +1,23 @@
+@import url("./reset.css");
+
+body{
+    height: 50vh;
+    font-size: 20px;
+    color: black;
+    display: flex;
+    justify-content: center;
+}
+
+#login_form{
+    text-align: center;
+    width : 200px;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    margin: 20vh 0vw;
+}
+
+#login_form td {
+    text-align: center;
+    vertical-align: middle;
+  }

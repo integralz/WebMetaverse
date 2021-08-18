@@ -1,9 +1,16 @@
-const express = require('express')
-const app = express()
-const port = 3000
+const express = require('express');
+const app = express();
+const port = 3001;
+
+
+const db_config = require(__dirname + '/asset/js/sql_login.js');
+const conn = db_config.init();
+db_config.connect(conn);
+
+app.use(express.static(__dirname + '/asset'));
 
 app.get('/', (req, res) => {
-  res.send('Hello World!')
+  res.sendFile(__dirname + "/asset/html/login.html");
 })
 
 app.listen(port, () => {
