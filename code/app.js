@@ -1,8 +1,6 @@
 const express = require('express');
 const app = express();
 const port = 3000;
-//비밀번호가 유출되어도 읽을 수 없게 설정
-const crypto = require('crypto');
 
 //MYSQL에 접속하기 위한 설정, 비밀번호를 노출하지 않기 위해 module.export로 계정 접속
 const db_config = require(__dirname + '/asset/js/sql_login.js');
@@ -15,10 +13,16 @@ app.use(express.static(__dirname + '/asset'));
 //body-parser은 deprecated됨
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-
+//쿠키 사용을 위한 설정
+const cookieParser = require(__dirname + '/asset/js/cookie.js');
 
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + "/asset/html/login.html");
+  if(cookieParser.Check(req)){
+    res.send("hello world");
+  }
+  else{
+    res.sendFile(__dirname + "/asset/html/login.html");
+  }
 });
 
 app.post('/', (req, res) => {
@@ -28,16 +32,21 @@ app.post('/', (req, res) => {
 
   connection.query(`select * from id_password where id = '${id}'`, function (err, rows, fields) {
     if (err) console.log(err);
-    const temporary_key = rows[0].temporary_key;
-    //비밀번호 암호화를 위해 module.export를 통해 함수 호출
-    const hash_password = db_config.CreateHash(password, temporary_key);
-    //아이디가 조회가 되고, 비밀번호가 맞다면, 로그인 성공
-    if (rows.length !== 0 && hash_password === rows[0].password) {
-      console.log("success");
-      res.write("<script>alert('welcome!')</script>");
+    //아이디가 조회가 되면 비밀번혹사 맞는지 확인 진행
+    if(rows.length !== 0){
+      const temporary_key = rows[0].temporary_key;
+      //비밀번호 암호화를 위해 module.export를 통해 함수 호출
+      const hash_password = db_config.CreateHash(password, temporary_key);
+      //비밀번호가 맞다면 쿠키 생성
+      if(hash_password === rows[0].password){
+        cookieParser.Make(id, res);
+        res.write("<script>alert('welcome!')</script>");
+      }
+      else{
+        res.write("<script>alert('There is no account. Please check your id and password.')</script>");
+      }
     }
-    else {
-      console.log("error");
+    else{
       res.write("<script>alert('There is no account. Please check your id and password.')</script>");
     }
     res.write("<script>window.location=\"/\"</script>");
