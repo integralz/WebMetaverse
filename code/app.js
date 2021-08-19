@@ -21,6 +21,29 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + "/asset/html/login.html");
 });
 
+app.post('/', (req, res) => {
+  const information = req.body;
+  const id = information.id;
+  const password = information.password;
+
+  connection.query(`select * from id_password where id = '${id}'`, function (err, rows, fields) {
+    if (err) console.log(err);
+    const temporary_key = rows[0].temporary_key;
+    //비밀번호 암호화를 위해 module.export를 통해 함수 호출
+    const hash_password = db_config.CreateHash(password, temporary_key);
+    //아이디가 조회가 되고, 비밀번호가 맞다면, 로그인 성공
+    if (rows.length !== 0 && hash_password === rows[0].password) {
+      console.log("success");
+      res.write("<script>alert('welcome!')</script>");
+    }
+    else {
+      console.log("error");
+      res.write("<script>alert('There is no account. Please check your id and password.')</script>");
+    }
+    res.write("<script>window.location=\"/\"</script>");
+  });
+});
+
 app.get('/signup', (req, res) => {
   res.sendFile(__dirname + "/asset/html/signup.html");
 });
@@ -28,7 +51,6 @@ app.get('/signup', (req, res) => {
 //회원가입을 위한 post
 app.post('/signup', (req, res) => {
   const information = req.body;
-
   const id = information.id;
   const password = information.password;
   const temporary_key = Math.round(new Date().valueOf() * Math.random()) + "";
@@ -39,13 +61,13 @@ app.post('/signup', (req, res) => {
     if (err) console.log(err);
     //중복된 아이디가 존재하거나, 계정 양식이 다를 경우 재기입 
     if (rows.length !== 0 || id === '' || password == '') {
-      if(rows.length !== 0){
+      if (rows.length !== 0) {
         res.write("<script>alert('There is a duplicated ID already')</script>");
       }
-      else if(id === ''){
+      else if (id === '') {
         res.write("<script>alert('please input the id')</script>");
       }
-      else if(password === ''){
+      else if (password === '') {
         res.write("<script>alert('please input the password')</script>");
       }
       res.write("<script>window.location=\"/signup\"</script>");
