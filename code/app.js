@@ -1,13 +1,21 @@
 const express = require('express');
 const app = express();
-const port = 3001;
+const port = 3000;
+//비밀번호가 유출되어도 읽을 수 없게 설정
+const crypto = require('crypto');
 
-
+//MYSQL에 접속하기 위한 설정, 비밀번호를 노출하지 않기 위해 module.export로 계정 접속
 const db_config = require(__dirname + '/asset/js/sql_login.js');
-const conn = db_config.init();
-db_config.connect(conn);
+const connection = db_config.Init();
+db_config.Connect(connection);
 
+//asset 하위 항목들을 사용하기 위한 설정
 app.use(express.static(__dirname + '/asset'));
+//로그인, 회원가입시 기입된 정보를 post로 받기 위한 설정
+//body-parser은 deprecated됨
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
 
 app.get('/', (req, res) => {
   res.sendFile(__dirname + "/asset/html/login.html");
@@ -15,6 +23,48 @@ app.get('/', (req, res) => {
 
 app.get('/signup', (req, res) => {
   res.sendFile(__dirname + "/asset/html/signup.html");
+});
+
+//회원가입을 위한 post
+app.post('/signup', (req, res) => {
+  const information = req.body;
+
+  const id = information.id;
+  const password = information.password;
+  const temporary_key = Math.round(new Date().valueOf() * Math.random()) + "";
+  //비밀번호 암호화를 위해 module.export를 통해 함수 호출
+  const hash_password = db_config.CreateHash(password, temporary_key);
+
+  connection.query(`select * from id_password where id = '${id}'`, function (err, rows, fields) {
+    if (err) console.log(err);
+    //중복된 아이디가 존재하거나, 계정 양식이 다를 경우 재기입 
+    if (rows.length !== 0 || id === '' || password == '') {
+      if(rows.length !== 0){
+        res.write("<script>alert('There is a duplicated ID already')</script>");
+      }
+      else if(id === ''){
+        res.write("<script>alert('please input the id')</script>");
+      }
+      else if(password === ''){
+        res.write("<script>alert('please input the password')</script>");
+      }
+      res.write("<script>window.location=\"/signup\"</script>");
+    }
+    //계정 생성이 가능하면 데이터베이스에 계정 생성
+    else {
+      let obj = {};
+      obj.id = id;
+      obj.password = hash_password;
+      obj.temporary_key = temporary_key;
+      connection.query('insert into id_password set ?', obj, function (err, rows, cols) {
+        if (err) throw err;
+        console.log("database insertion ok= %j", obj);
+      });
+
+      res.redirect("/");
+    }
+  });
+
 });
 
 app.listen(port, () => {
