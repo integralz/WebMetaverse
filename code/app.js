@@ -25,6 +25,7 @@ app.get('/', (req, res) => {
   }
 });
 
+//로그인을 위한 post
 app.post('/', (req, res) => {
   const information = req.body;
   const id = information.id;
