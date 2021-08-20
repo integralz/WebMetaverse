@@ -9,6 +9,10 @@ db_config.Connect(connection);
 
 //asset 하위 항목들을 사용하기 위한 설정
 app.use(express.static(__dirname + '/asset'));
+//three js 연결을 위한 경로 설정
+const path = require('path');
+app.use('/build/', express.static(path.join(__dirname, 'node_modules/three/build')));
+app.use('/jsm/', express.static(path.join(__dirname, 'node_modules/three/examples/jsm')));
 //로그인, 회원가입시 기입된 정보를 post로 받기 위한 설정
 //body-parser은 deprecated됨
 app.use(express.urlencoded({ extended: true }));
