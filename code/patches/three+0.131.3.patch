@@ -1,0 +1,24 @@
+diff --git a/node_modules/three/.DS_Store b/node_modules/three/.DS_Store
+new file mode 100644
+index 0000000..2b6621f
+Binary files /dev/null and b/node_modules/three/.DS_Store differ
+diff --git a/node_modules/three/examples/.DS_Store b/node_modules/three/examples/.DS_Store
+new file mode 100644
+index 0000000..48cedfb
+Binary files /dev/null and b/node_modules/three/examples/.DS_Store differ
+diff --git a/node_modules/three/examples/jsm/.DS_Store b/node_modules/three/examples/jsm/.DS_Store
+index 7c5b2de..e04be7c 100644
+Binary files a/node_modules/three/examples/jsm/.DS_Store and b/node_modules/three/examples/jsm/.DS_Store differ
+diff --git a/node_modules/three/examples/jsm/loaders/GLTFLoader.js b/node_modules/three/examples/jsm/loaders/GLTFLoader.js
+index d4d586d..7c1d1ce 100644
+--- a/node_modules/three/examples/jsm/loaders/GLTFLoader.js
++++ b/node_modules/three/examples/jsm/loaders/GLTFLoader.js
+@@ -61,7 +61,7 @@ import {
+ 	Vector3,
+ 	VectorKeyframeTrack,
+ 	sRGBEncoding
+-} from 'three';
++} from '/build/three.module.js';
+ 
+ class GLTFLoader extends Loader {
+ 
