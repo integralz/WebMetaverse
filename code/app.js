@@ -18,7 +18,7 @@ const cookieParser = require(__dirname + '/asset/js/cookie.js');
 
 app.get('/', (req, res) => {
   if(cookieParser.Check(req)){
-    res.send("hello world");
+    res.sendFile(__dirname + "/asset/html/world.html");
   }
   else{
     res.sendFile(__dirname + "/asset/html/login.html");
