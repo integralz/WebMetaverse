@@ -70,6 +70,7 @@ function animate() {
     requestAnimationFrame(animate);
     canvas.width = Math.round(dpr * canvas.clientWidth);
     canvas.height = Math.round(dpr * canvas.clientHeight);
+    renderer.setSize( window.innerWidth, window.innerHeight );
     camera.position.z = cube.position.z + 15;
     camera.position.x = cube.position.x;
     camera.lookAt(cube.position.x, cube.position.y, cube.position.z);
