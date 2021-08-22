@@ -6,25 +6,39 @@
 	display: block;
 }
 
+#chat_button{
+	position: absolute;
+	opacity: 0.5;
+	width: 48px;
+	height: 48px;
+	background-image: url("../img/chat_button.png");
+	background-color: transparent;
+}
+
+
 #chat_system{
 	position: absolute;
 	left: 0;
 	bottom:0;
 	background-color: white;
 	opacity: 0.5;
+	visibility: hidden;
 }
 
 #chat_window{
 	width: 40vw;
 	height: 20vh;
+	visibility: inherit;
 }
 
 #chat_input{
 	width: calc(40vw - 50px);
 	border: 1px solid;
 	padding: 1px;
+	visibility: inherit;
 }
 
 #chat_send_button{
 	width: 50px;
+	visibility: inherit;
 }
