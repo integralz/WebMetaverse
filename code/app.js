@@ -13,6 +13,8 @@ app.use(express.static(__dirname + '/asset'));
 const path = require('path');
 app.use('/build/', express.static(path.join(__dirname, 'node_modules/three/build')));
 app.use('/jsm/', express.static(path.join(__dirname, 'node_modules/three/examples/jsm')));
+//socket.io 연결을 위한 경로 설정
+app.use('/dist/', express.static(path.join(__dirname, 'node_modules/socket.io/client-dist')));
 //로그인, 회원가입시 기입된 정보를 post로 받기 위한 설정
 //body-parser은 deprecated됨
 app.use(express.urlencoded({ extended: true }));
@@ -103,6 +105,36 @@ app.post('/signup', (req, res) => {
 
 });
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)
+});
+
+//socket.io 설정
+const io = require('socket.io')(server);
+
+io.on("connection", (socket) => {
+  //접속에 대한 구현, id 또한 저장
+  socket.on('NewUserConnect', function (id) {
+    socket.id = id;
+    const message = socket.id + '님이 접속했습니다.';
+
+    io.emit("updateMessage", {
+      name: 'SERVER',
+      message: message
+    });
+  });
+  //퇴장에 대한 구현
+  socket.on('disconnect', function () {
+    var message = socket.id + '님이 퇴장했습니다';
+    socket.broadcast.emit('updateMessage', {
+      name: 'SERVER',
+      message: message
+    });
+  });
+  //메세지 전송에 대한 구현
+  socket.on('sendMessage', function (data) {
+    data.id = socket.id;
+    io.sockets.emit('updateMessage', data);
+  });
+
 });
