@@ -1,4 +1,5 @@
 const express = require('express');
+const { SocketAddress } = require('net');
 const app = express();
 const port = 3000;
 
@@ -23,10 +24,10 @@ app.use(express.json());
 const cookieParser = require(__dirname + '/asset/js/cookie.js');
 
 app.get('/', (req, res) => {
-  if(cookieParser.Check(req)){
+  if (cookieParser.Check(req)) {
     res.sendFile(__dirname + "/asset/html/world.html");
   }
-  else{
+  else {
     res.sendFile(__dirname + "/asset/html/login.html");
   }
 });
@@ -40,20 +41,20 @@ app.post('/', (req, res) => {
   connection.query(`select * from id_password where id = '${id}'`, function (err, rows, fields) {
     if (err) console.log(err);
     //아이디가 조회가 되면 비밀번혹사 맞는지 확인 진행
-    if(rows.length !== 0){
+    if (rows.length !== 0) {
       const temporary_key = rows[0].temporary_key;
       //비밀번호 암호화를 위해 module.export를 통해 함수 호출
       const hash_password = db_config.CreateHash(password, temporary_key);
       //비밀번호가 맞다면 쿠키 생성
-      if(hash_password === rows[0].password){
+      if (hash_password === rows[0].password) {
         cookieParser.Make(id, res);
         res.write("<script>alert('welcome!')</script>");
       }
-      else{
+      else {
         res.write("<script>alert('There is no account. Please check your id and password.')</script>");
       }
     }
-    else{
+    else {
       res.write("<script>alert('There is no account. Please check your id and password.')</script>");
     }
     res.write("<script>window.location=\"/\"</script>");
@@ -109,6 +110,12 @@ const server = app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)
 });
 
+//캐릭터 데이터 module 가져옴
+const character_data = require(__dirname + '/asset/js/character_data.js');
+//접속 중인 캐릭터를 담기 위한 배열 및 map
+let id_container = [];
+let character_container = {};
+
 //socket.io 설정
 const io = require('socket.io')(server);
 
@@ -122,19 +129,56 @@ io.on("connection", (socket) => {
       name: 'SERVER',
       message: message
     });
+
+    //접속 계정 명단에 id를 기입하고, character의 정보 또한 map에 담는다.
+    const user_character = character_data.MakeCharacter();
+    user_character.id = socket.id;
+    id_container.push(id);
+    character_container[id] = user_character;
+
+    //새로 접속한 사람을 위해 online한 유저를 체크하는 메세지를 보낸다.
+    for (let id_container_index in id_container) {
+      const user_id = id_container[id_container_index]
+      io.emit("OnlineUserCheck", character_container[user_id]);
+    }
   });
   //퇴장에 대한 구현
   socket.on('disconnect', function () {
-    var message = socket.id + '님이 퇴장했습니다';
-    socket.broadcast.emit('updateMessage', {
-      name: 'SERVER',
-      message: message
-    });
+    //접속 유저가 disconnect할 때의 조건 추가
+    if (character_container[socket.id] !== undefined) {
+      var message = socket.id + '님이 퇴장했습니다';
+
+      socket.broadcast.emit('updateMessage', {
+        name: 'SERVER',
+        message: message
+      });
+
+      //disconnect한 유저의 캐릭터를 없애기 위해서 메세지를 보낸다.
+      socket.broadcast.emit('OfflineUserCheck', character_container[socket.id]);
+      //disconnect 될시에 접속 명단에서 제거하고, character의 정보를 map에서 뺴냄.
+      for (let id_container_index in id_container) {
+        if (id_container[id_container_index] == socket.id) {
+          id_container.splice(id_container_index, 1);
+          break;
+        }
+      }
+      delete character_container[socket.id];
+    }
   });
   //메세지 전송에 대한 구현
   socket.on('sendMessage', function (data) {
     data.id = socket.id;
     io.sockets.emit('updateMessage', data);
+  });
+  //각 유저들의 캐릭터 움직임을 최신화하기 위한 구현
+  socket.on('CharacterPosition', function (data) {
+    const id = data.id;
+    const character = character_container[id];
+    character.x = data.x;
+    character.y = data.y;
+    character.z = data.z;
+      
+    socket.broadcast.emit('UpdateCharacter', character);
   });
 
 });
