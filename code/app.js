@@ -25,7 +25,7 @@ const cookieParser = require(__dirname + '/asset/js/cookie.js');
 
 app.get('/', (req, res) => {
   if (cookieParser.Check(req)) {
-    res.sendFile(__dirname + "/asset/html/world.html");
+    res.sendFile(__dirname + "/asset/html/makecharacter.html");
   }
   else {
     res.sendFile(__dirname + "/asset/html/login.html");
@@ -104,6 +104,49 @@ app.post('/signup', (req, res) => {
     }
   });
 
+});
+
+//생성된 캐릭터를 데이터 베이스에 저장
+app.post('/makecharacter', (req, res) => {
+  const information = req.body;
+  const id = information.id;
+  const id_character_json = information.character_json;
+  console.log(id_character_json.length);
+
+  //id 별로 캐릭터 저장
+  connection.query(`select * from id_character where id = '${id}'`, function (err, rows, fields) {
+    if (err) console.log(err);
+    //캐릭터 변경
+    if(rows.length !== 0){
+      connection.query(`update id_character set character_json = '${id_character_json}'`, function (err, rows, cols) {
+        if (err) throw err;
+        console.log("database change ok");
+      });
+    }
+    //캐릭터 생성
+    else{
+      let obj = {};
+      obj.id = id;
+      obj.character_json = id_character_json;
+
+      connection.query('insert into id_character set ?', obj, function (err, rows, cols) {
+        if (err) throw err;
+        console.log("database insertion ok= %j", obj);
+      });
+    }
+  });
+  //생성된 캐릭터를 통해 world로 이동
+  res.redirect("/world");
+});
+
+//world로의 이동
+app.get('/world', (req, res) => {
+  if(cookieParser.Check(req)){
+    res.sendFile(__dirname + "/asset/html/world.html");
+  }
+  else{
+    res.sendFile(__dirname + "/asset/html/login.html");
+  }
 });
 
 const server = app.listen(port, () => {
