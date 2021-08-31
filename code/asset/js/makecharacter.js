@@ -229,6 +229,11 @@ make_character.addEventListener('click', ()=>{
     const form = document.createElement('form');
     form.setAttribute('method', 'post');
     form.setAttribute('action', '/makecharacter');
+
+    const id = document.createElement('input');
+    id.setAttribute('name', 'id');
+    id.setAttribute('value', document.cookie.split('id=')[1]);
+    form.appendChild(id);
     
     const character_form_input = document.createElement('input');
     character_form_input.setAttribute('name', 'character_json');
