@@ -1,0 +1,22 @@
+@import url("./reset.css");
+
+#view{
+	width: 50vw;
+	height: 50vh;
+	display: block;
+}
+
+#custom_character{
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-start;
+}
+
+#image_upload{
+	margin: 10px;
+}
+
+#make_character{
+	width: 100px;
+	margin: 10px;
+}
