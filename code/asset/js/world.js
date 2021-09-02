@@ -2,8 +2,10 @@ import * as THREE from '/build/three.module.js';
 import { GLTFLoader } from '/jsm/loaders/GLTFLoader.js';
 const socket = io();
 
+//json 형식의 object를 열기 위한 설정
+const json_loader = new THREE.ObjectLoader();
+
 //접속 중인 캐릭터를 담기 위한 배열 및 map
-let id_container = [];
 let character_container = {};
 
 //scene 생성
@@ -39,14 +41,11 @@ LoadModel("fastfood.glb", -60, 0, -120);
 LoadModel("fastfood.glb", 60, 0, 60);
 LoadModel("gas.glb", 0, 0, 60);
 
-//user가 움직일 수 있는 mesh 생성(temporary)
-const geometry = new THREE.BoxGeometry(1, 1, 1);
-const material = new THREE.MeshBasicMaterial({ color: 0x44aa88 });  // greenish blue
-const cube = new THREE.Mesh(geometry, material);
-scene.add(cube);
+//user의 캐릭터 초기화
+let my_character;
 
 //본인의 캐릭터 객체 생성
-let my_character = {
+let my_character_position = {
     id: document.cookie.split('id=')[1],
     x: 0,
     y: 0,
@@ -54,32 +53,34 @@ let my_character = {
 };
 
 //초기 카메라 위치 설정
-camera.position.z = cube.position.z + 15;
+camera.position.z = 15;
 camera.position.y = 20;
-camera.position.x = cube.position.x;
-camera.lookAt(cube.position.x, cube.position.y, cube.position.z);
+camera.position.x = 0;
+camera.lookAt(0, 0, 0);
 
 //방향키 입력 이벤트 기입
 document.addEventListener("keydown", onDocumentKeyDown, false);
 function onDocumentKeyDown(event) {
-    let keyCode = event.which;
-    // up
-    if (keyCode == 38) {
-        cube.position.z -= 1;
-        // down
-    } else if (keyCode == 40) {
-        cube.position.z += 1;
-        // left
-    } else if (keyCode == 37) {
-        cube.position.x -= 1;
-        // right
-    } else if (keyCode == 39) {
-        cube.position.x += 1;
+    if (my_character !== undefined) {
+        let keyCode = event.which;
+        // up
+        if (keyCode == 38) {
+            my_character.position.z -= 1;
+            // down
+        } else if (keyCode == 40) {
+            my_character.position.z += 1;
+            // left
+        } else if (keyCode == 37) {
+            my_character.position.x -= 1;
+            // right
+        } else if (keyCode == 39) {
+            my_character.position.x += 1;
+        }
+        my_character_position.x = my_character.position.x;
+        my_character_position.y = my_character.position.y;
+        my_character_position.z = my_character.position.z;
+        socket.emit('CharacterPosition', my_character_position);
     }
-    my_character.x = cube.position.x;
-    my_character.y = cube.position.y;
-    my_character.z = cube.position.z;
-    socket.emit('CharacterPosition', my_character);
 };
 
 //rendering loop function 설정
@@ -88,9 +89,11 @@ function animate() {
     canvas.width = Math.round(dpr * canvas.clientWidth);
     canvas.height = Math.round(dpr * canvas.clientHeight);
     renderer.setSize(window.innerWidth, window.innerHeight);
-    camera.position.z = cube.position.z + 15;
-    camera.position.x = cube.position.x;
-    camera.lookAt(cube.position.x, cube.position.y, cube.position.z);
+    if (my_character !== undefined) {
+        camera.position.z = my_character.position.z + 15;
+        camera.position.x = my_character.position.x;
+        camera.lookAt(my_character.position.x, my_character.position.y, my_character.position.z);
+    }
     renderer.render(scene, camera);
 }
 
@@ -117,14 +120,28 @@ function LoadModel(model_name, x, y, z) {
 socket.on('OnlineUserCheck', function (data) {
     const id = data.id;
     if (character_container[id] === undefined && id !== document.cookie.split('id=')[1]) {
-        const geometry = new THREE.BoxGeometry(1, 1, 1);
-        const material = new THREE.MeshBasicMaterial({ color: data.color });  // greenish blue
-        const cube = new THREE.Mesh(geometry, material);
-        cube.position.x = data.x;
-        cube.position.y = data.y;
-        cube.position.z = data.z;
-        scene.add(cube);
-        character_container[id] = cube;
+        const character_json = JSON.parse(data.character_json);
+        const character = json_loader.parse(character_json);
+        character.position.x = data.x;
+        if (data.y === 0) {
+            character.position.y = data.y + 2.4;
+        }
+        else {
+            character.position.y = data.y;
+        }
+        character.position.z = data.z;
+        ScaleDown(character);
+        scene.add(character);
+        character_container[id] = character;
+    }
+    //본인의 캐릭터를 load
+    else if (character_container[id] === undefined && my_character === undefined) {
+        const character_json = JSON.parse(data.character_json);
+        my_character = json_loader.parse(character_json);
+        //캐릭터의 중심의 y 좌표가 0이므로 보정
+        my_character.position.y += 2.4;
+        ScaleDown(my_character);
+        scene.add(my_character);
     }
 });
 
@@ -144,3 +161,10 @@ socket.on('UpdateCharacter', function (data) {
     character.position.y = data.y;
     character.position.z = data.z;
 });
+
+//캐릭터의 크기를 보정해주는 함수
+function ScaleDown(character) {
+    character.scale.x = 0.1;
+    character.scale.y = 0.1;
+    character.scale.z = 0.1;
+}

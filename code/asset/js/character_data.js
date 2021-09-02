@@ -10,7 +10,7 @@ module.exports = {
             x: startx,
             y: starty,
             z: startz,
-            color: "#" + Math.floor(Math.random() * 16777215).toString(16)
+            character_json: ""
         };
         return character_data;
     }
