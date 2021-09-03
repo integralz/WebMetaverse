@@ -25,7 +25,7 @@ const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
 
 //light 설정                                                
 const color = 0xFFFFFF;
-const intensity = 1;
+const intensity = 1.5;
 const light = new THREE.AmbientLight(color, intensity);
 scene.add(light);
 
