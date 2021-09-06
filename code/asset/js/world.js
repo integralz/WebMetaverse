@@ -44,12 +44,14 @@ LoadModel("gas.glb", 0, 0, 60);
 //user의 캐릭터 초기화
 let my_character;
 
-//본인의 캐릭터 객체 생성
+//본인의 캐릭터 객체 생성, direction(0: 남, 1:동, 2:북, 3: 서)
 let my_character_position = {
     id: document.cookie.split('id=')[1],
     x: 0,
     y: 0,
-    z: 0
+    z: 0,
+    direction: 0,
+    walk_status: 0
 };
 
 //초기 카메라 위치 설정
@@ -75,37 +77,67 @@ const collision_tester = {
     z: 0
 };
 
+//걸음에 대한 rotation을 정의하기 위한 설정
+const walk = [0, 0.3, -0.3];
+const walk_order = [
+    [['walk', 0, 0.25, 1], ['walk', 0, 0.25, 0], ['walk', 0, 0.25, 2], ['walk', 0, 0.25, 0]],
+    [['walk', 0.25, 0, 1], ['walk', 0.25, 0, 0], ['walk', 0.25, 0, 2], ['walk', 0.25, 0, 0]],
+    [['walk', 0, -0.25, 1], ['walk', 0, -0.25, 0], ['walk', 0, -0.25, 2], ['walk', 0, -0.25, 0]],
+    [['walk', -0.25, 0, 1], ['walk', -0.25, 0, 0], ['walk', -0.25, 0, 2], ['walk', -0.25, 0, 0]]
+];
+
+//character skeleton을 받기 위한 설정
+let my_character_skeleton;
+
+//명령에 대한 queue
+let character_order = [];
+
+//시간에 따른 렌더링 최적화를 위한 설정
+let before_time = 0;
+let now_time = new Date().getTime();
+
 //방향키 입력 이벤트 기입
 document.addEventListener("keydown", onDocumentKeyDown, false);
 function onDocumentKeyDown(event) {
-    if (my_character !== undefined) {
+    if (my_character !== undefined && character_order.length === 0) {
         let keyCode = event.which;
+        let right_key_press = false;
         // up
         if (keyCode == 38) {
             collision_tester.z -= 1;
+            my_character_position.direction = 2;
+            right_key_press = true;
             // down
-        } else if (keyCode == 40) {
+        }
+        else if (keyCode == 40) {
             collision_tester.z += 1;
+            my_character_position.direction = 0;
+            right_key_press = true;
             // left
-        } else if (keyCode == 37) {
+        }
+        else if (keyCode == 37) {
             collision_tester.x -= 1;
+            my_character_position.direction = 3;
+            right_key_press = true;
             // right
-        } else if (keyCode == 39) {
+        }
+        else if (keyCode == 39) {
             collision_tester.x += 1;
+            my_character_position.direction = 1;
+            right_key_press = true;
         }
         //명령한 이동에 대해서 collision이 발생하는지 안하는지에 따라 명령을 따를지 안따를지 판단
-        if (!CheckCollision()) {
-            my_character.position.x = collision_tester.x;
-            my_character.position.z = collision_tester.z;
+        if (right_key_press) {
+            if (!CheckCollision()) {
+                for (let walk_order_index = 0; walk_order_index < 4; ++walk_order_index) {
+                    character_order.push(walk_order[my_character_position.direction][walk_order_index]);
+                }
+            }
+            else {
+                collision_tester.x = my_character.position.x;
+                collision_tester.z = my_character.position.z;
+            }
         }
-        else {
-            collision_tester.x = my_character.position.x;
-            collision_tester.z = my_character.position.z;
-        }
-        my_character_position.x = my_character.position.x;
-        my_character_position.y = my_character.position.y;
-        my_character_position.z = my_character.position.z;
-        socket.emit('CharacterPosition', my_character_position);
     }
 };
 
@@ -119,6 +151,24 @@ function animate() {
         camera.position.z = my_character.position.z + 15;
         camera.position.x = my_character.position.x;
         camera.lookAt(my_character.position.x, my_character.position.y, my_character.position.z);
+        my_character_skeleton.bones[2].rotation.y = Math.PI * my_character_position.direction / 2;
+        //명령이 존재할시 수행
+        if (character_order.length !== 0) {
+            now_time = new Date().getTime();
+            if (now_time - before_time > 50) {
+                before_time = now_time;
+                const character_mission = character_order[0];
+                if (character_mission[0] === 'walk') {
+                    MyWalkOperation(character_mission, my_character, my_character_skeleton);
+                }
+                character_order.shift();
+                my_character_position.x = my_character.position.x;
+                my_character_position.y = my_character.position.y;
+                my_character_position.z = my_character.position.z;
+                my_character_position.walk_status = character_mission[3];
+                socket.emit('CharacterPosition', my_character_position);
+            }
+        }
     }
     renderer.render(scene, camera);
 }
@@ -160,10 +210,10 @@ socket.on('OnlineUserCheck', function (data) {
     if (character_container[id] === undefined && id !== document.cookie.split('id=')[1]) {
         const character_json = JSON.parse(data.character_json);
         const character = json_loader.parse(character_json);
-        if(data.x === 0){
+        if (data.x === 0) {
             character.position.x = data.x + 12.0;
         }
-        else{
+        else {
             character.position.x = data.x;
         }
         if (data.y === 0) {
@@ -186,6 +236,7 @@ socket.on('OnlineUserCheck', function (data) {
         my_character_position.x = my_character.position.x;
         my_character.position.y += 2.4;
         my_character_position.y = my_character.position.y;
+        my_character_skeleton = my_character.children[0].skeleton;
         ScaleDown(my_character);
         scene.add(my_character);
     }
@@ -203,9 +254,16 @@ socket.on('OfflineUserCheck', function (data) {
 socket.on('UpdateCharacter', function (data) {
     const id = data.id;
     const character = character_container[id];
+    const character_skeleton = character.children[0].skeleton;
+    const status = walk[data.walk_status];
     character.position.x = data.x;
     character.position.y = data.y;
     character.position.z = data.z;
+    character_skeleton.bones[2].rotation.y = Math.PI * data.direction / 2;
+    character_skeleton.bones[0].rotation.x = status;
+    character_skeleton.bones[1].rotation.x = -1 * status;
+    character_skeleton.bones[3].rotation.x = status;
+    character_skeleton.bones[4].rotation.x = -1 * status;
 });
 
 //캐릭터의 크기를 보정해주는 함수
@@ -219,13 +277,26 @@ function ScaleDown(character) {
 function CheckCollision() {
     let collision_checker = false;
     const collision_tester_position = new THREE.Vector3(collision_tester.x, collision_tester.y, collision_tester.z);
-    for(let collision_vector_index = 0; collision_vector_index < 4; ++collision_vector_index){
+    for (let collision_vector_index = 0; collision_vector_index < 4; ++collision_vector_index) {
         const ray = new THREE.Raycaster(collision_tester_position, collision_vector[collision_vector_index], 0, 0.6);
         const collision_result = ray.intersectObjects(world, false);
-        if(collision_result.length !== 0){
+        if (collision_result.length !== 0) {
             collision_checker = true;
             break;
         }
     }
     return collision_checker;
+}
+
+//내 캐릭터의 이동을 담당하는 함수
+function MyWalkOperation(character_mission, my_character, my_character_skeleton) {
+    const move_x = character_mission[1];
+    const move_z = character_mission[2];
+    const status = walk[character_mission[3]];
+    my_character.position.x += move_x;
+    my_character.position.z += move_z;
+    my_character_skeleton.bones[0].rotation.x = status;
+    my_character_skeleton.bones[1].rotation.x = -1 * status;
+    my_character_skeleton.bones[3].rotation.x = status;
+    my_character_skeleton.bones[4].rotation.x = -1 * status;
 }
