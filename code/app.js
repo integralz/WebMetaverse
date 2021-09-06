@@ -234,6 +234,8 @@ io.on("connection", (socket) => {
     character.x = data.x;
     character.y = data.y;
     character.z = data.z;
+    character.direction = data.direction;
+    character.walk_status = data.walk_status;
 
     socket.broadcast.emit('UpdateCharacter', character);
   });
