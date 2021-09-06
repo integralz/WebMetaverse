@@ -6,6 +6,24 @@
 	display: block;
 }
 
+#changer{
+	position: absolute;
+	right: 10vw;
+	top: 10vh;
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-start;
+	text-align: center;
+}
+
+.before{
+	margin: 15px;
+}
+
+.next{
+	margin: 15px;
+}
+
 #custom_character{
 	display: flex;
 	flex-direction: column;
