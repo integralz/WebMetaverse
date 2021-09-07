@@ -270,6 +270,7 @@ make_character.addEventListener('click', () => {
     character_form_input.setAttribute('name', 'character_json');
     character_form_input.setAttribute('value', JSON.stringify(character.toJSON()));
     form.appendChild(character_form_input);
+    form.style.display = "none";
     document.body.appendChild(form);
     form.submit();
 });
