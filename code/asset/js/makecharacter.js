@@ -1,5 +1,12 @@
 import * as THREE from '/build/three.module.js';
 
+//이미지 템플릿 모음
+const image_template = ['template1.png', 'template2.png', 'template3.png', 'template4.png', 'template5.png'];
+//선택된 이미지 좌표
+const selected_image = [0, 0, 0];
+//이미지당 할당 mesh
+const texture_change_set = [[5],[2, 3, 4],[0, 1]];
+
 //scene 생성
 const scene = new THREE.Scene();
 
@@ -115,7 +122,7 @@ let character_geometry = [];
 MakeCharacterGeometry(character_geometry);
 
 for (let character_geometry_index = 0; character_geometry_index < 6; ++character_geometry_index) {
-    const texture = new THREE.TextureLoader().load("../character/example.png");
+    const texture = new THREE.TextureLoader().load("../character/" + image_template[0]);
     const material = new THREE.MeshBasicMaterial({ map: texture });
     const cube = new THREE.SkinnedMesh(character_geometry[character_geometry_index], material);
     cube.position.x = character_position[character_geometry_index * 3];
@@ -283,4 +290,37 @@ function MakeBones() {
     }
 
     return bones;
+}
+
+//머리, 몸, 다리 텍스쳐 변환 이벤트 구현
+const next_changer_button = document.getElementsByClassName("next");
+
+for (let button_index = 0; button_index < 3; ++button_index) {
+    next_changer_button[button_index].addEventListener('click', () => {
+        selected_image[button_index] = (selected_image[button_index] + 1) % 5;
+        const change_mesh = texture_change_set[button_index];
+
+        Change_Texture(selected_image[button_index], change_mesh, character);
+    });
+}
+
+const before_changer_button = document.getElementsByClassName("before");
+
+for (let button_index = 0; button_index < 3; ++button_index) {
+    before_changer_button[button_index].addEventListener('click', () => {
+        selected_image[button_index] = (selected_image[button_index] + 4) % 5;
+        const change_mesh = texture_change_set[button_index];
+
+        Change_Texture(selected_image[button_index], change_mesh, character);
+    });
+}
+
+//텍스쳐 변경 함수
+function Change_Texture(picture_index, change_mesh, character){
+    const texture = new THREE.TextureLoader().load("../character/" + image_template[picture_index]);
+    for(let change_mesh_index = 0; change_mesh_index < change_mesh.length; ++change_mesh_index){
+        const change_num = change_mesh[change_mesh_index];
+        character.children[change_num].material.map.dispose();
+        character.children[change_num].material.map = texture;
+    }
 }
