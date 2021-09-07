@@ -25,7 +25,7 @@ const cookieParser = require(__dirname + '/asset/js/cookie.js');
 
 app.get('/', (req, res) => {
   if (cookieParser.Check(req)) {
-    res.sendFile(__dirname + "/asset/html/world.html");
+    res.sendFile(__dirname + "/asset/html/makecharacter.html");
   }
   else {
     res.sendFile(__dirname + "/asset/html/login.html");
@@ -106,6 +106,49 @@ app.post('/signup', (req, res) => {
 
 });
 
+//생성된 캐릭터를 데이터 베이스에 저장
+app.post('/makecharacter', (req, res) => {
+  const information = req.body;
+  const id = information.id;
+  const id_character_json = information.character_json;
+  console.log(id_character_json.length);
+
+  //id 별로 캐릭터 저장
+  connection.query(`select * from id_character where id = '${id}'`, function (err, rows, fields) {
+    if (err) console.log(err);
+    //캐릭터 변경
+    if (rows.length !== 0) {
+      connection.query(`update id_character set character_json = '${id_character_json}' where id = '${id}'`, function (err, rows, cols) {
+        if (err) throw err;
+        console.log("database change ok");
+      });
+    }
+    //캐릭터 생성
+    else {
+      let obj = {};
+      obj.id = id;
+      obj.character_json = id_character_json;
+
+      connection.query('insert into id_character set ?', obj, function (err, rows, cols) {
+        if (err) throw err;
+        console.log("database insertion ok= %j", obj);
+      });
+    }
+  });
+  //생성된 캐릭터를 통해 world로 이동
+  res.redirect("/world");
+});
+
+//world로의 이동
+app.get('/world', (req, res) => {
+  if (cookieParser.Check(req)) {
+    res.sendFile(__dirname + "/asset/html/world.html");
+  }
+  else {
+    res.sendFile(__dirname + "/asset/html/login.html");
+  }
+});
+
 const server = app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)
 });
@@ -131,16 +174,30 @@ io.on("connection", (socket) => {
     });
 
     //접속 계정 명단에 id를 기입하고, character의 정보 또한 map에 담는다.
-    const user_character = character_data.MakeCharacter();
+    let user_character = character_data.MakeCharacter();
     user_character.id = socket.id;
-    id_container.push(id);
-    character_container[id] = user_character;
 
-    //새로 접속한 사람을 위해 online한 유저를 체크하는 메세지를 보낸다.
-    for (let id_container_index in id_container) {
-      const user_id = id_container[id_container_index]
-      io.emit("OnlineUserCheck", character_container[user_id]);
-    }
+    //접속한 계정의 캐릭터를 알기 위한 sql문 호출
+    connection.query(`select * from id_character where id = '${id}'`, function (err, rows, fields) {
+      if (err) console.log(err);
+      //조회가 되면 캐릭터 담기
+      if (rows.length !== 0) {
+        user_character.character_json = rows[0].character_json;
+        //접속중인 유저 명단 작성
+        character_container[id] = user_character;
+        id_container.push(id);
+
+        //새로 접속한 사람을 위해 online한 유저를 체크하는 메세지를 보낸다.
+        for (let id_container_index in id_container) {
+          const user_id = id_container[id_container_index]
+          io.emit("OnlineUserCheck", character_container[user_id]);
+        }
+      }
+      else {
+        res.write("<script>alert('There is no character you make. Please check your character')</script>");
+        res.write("<script>window.location=\"/\"</script>");
+      }
+    });
   });
   //퇴장에 대한 구현
   socket.on('disconnect', function () {
@@ -177,7 +234,9 @@ io.on("connection", (socket) => {
     character.x = data.x;
     character.y = data.y;
     character.z = data.z;
-      
+    character.direction = data.direction;
+    character.walk_status = data.walk_status;
+
     socket.broadcast.emit('UpdateCharacter', character);
   });
 

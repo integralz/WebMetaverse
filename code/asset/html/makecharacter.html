@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="stylesheet" href="../css/makecharacter.css" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>zoom with metaverse</title>
+</head>
+
+<body>
+    <canvas id="view"></canvas>
+    <div id="changer">
+        <div id="head_changer">
+            <div>
+                머리 바꾸기
+            </div>
+            <input type="button" class="before" value="<" />
+            <input type="button" class="next" value=">" />
+        </div>
+        <div id="body_changer">
+            <div>
+                몸통 바꾸기
+            </div>
+            <input type="button" class="before" value="<" />
+            <input type="button" class="next" value=">" />
+        </div>
+        <div id="leg_changer">
+            <div>
+                다리 바꾸기
+            </div>
+            <input type="button" class="before" value="<" />
+            <input type="button" class="next" value=">" />
+        </div>
+    </div>
+    <div id="custom_character">
+        <input type="file" id="image_upload" accept="image/png" />
+        <input type="button" id="make_character" value="캐릭터 생성하기" />
+    </div>
+
+    <script type="module" src="../js/makecharacter.js"></script>
+</body>
+
+</html>
